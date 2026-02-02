@@ -40,6 +40,33 @@ public class Main {
         }
     }
 
+    private static String ReadFile(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return null;
+        }
+
+        return ReadFile(new File(filename));
+    }
+
+    private static String ReadFile(File file) {
+        if (file == null) {
+            return null;
+        }
+
+        byte[] content;
+        try (FileInputStream stream = new FileInputStream(file)) {
+            content = stream.readAllBytes();
+        } catch (FileNotFoundException e) {
+            System.err.println("File \"" + file.getAbsolutePath() + "\" is not found.");
+            return null;
+        } catch (IOException e) {
+            System.err.println(e.getLocalizedMessage());
+            return null;
+        }
+
+        return new String(content);
+    }
+
     public static void main(String[] args) {
         if (args == null || args.length < 2) {
             System.err.println("USAGE: <macro_definintion_file> <macro_application_file>");
@@ -68,20 +95,9 @@ public class Main {
             return;
         }
 
-        byte[] content;
-        try (FileInputStream stream = new FileInputStream(args[1])) {
-            content = stream.readAllBytes();
-        } catch (FileNotFoundException e) {
-            System.err.println("File \"" + args[1] + "\" is not found.");
-            return;
-        } catch (IOException e) {
-            System.err.println(e.getLocalizedMessage());
-            return;
-        }
+        final String finalContent = Replace(ReadFile(args[1]));
 
-        final String finalContent = Replace(new String(content));
-
-        System.out.println(finalContent);
+        System.out.println(Replace(finalContent));
     }
 
     /* [#] [pattern] <target> [$=] <replacement> */
@@ -141,19 +157,12 @@ public class Main {
             return null;
         }
 
-        boolean remains = true;
-        while (remains) {
-            for (MacroPattern pattern : macroPatternRegistries) {
-                boolean found = false;
-                while (content.contains(pattern.getTarget())) {
-                    found = true;
-                    content = ReplaceSingular(content, pattern);
-                }
-
-                if (!found) {
-                    remains = false;
-                }
+        for (MacroPattern pattern : macroPatternRegistries) {
+            if (!content.contains(pattern.getTarget())) {
+                continue;
             }
+
+            content = ReplaceSingular(content, pattern);
         }
 
         return content;
