@@ -6,40 +6,6 @@ public class Main {
 
     private static ArrayList<MacroPattern> macroPatternRegistries;
 
-    /* #pattern target $= replacement */
-    private static class MacroPattern {
-        String target;
-        String replacement;
-
-        public MacroPattern(String target) {
-            this.target = target;
-            this.replacement = "";
-        }
-
-        public MacroPattern(String target, String replacement) {
-            this.target = target;
-            this.replacement = replacement;
-        }
-
-        public String getTarget() {
-            return target;
-        }
-
-        public String getReplacement() {
-            return replacement;
-        }
-
-        @Override
-        public String toString() {
-            return (
-                "MacroPattern {" + System.lineSeparator() +
-                "  .target='%s'," + System.lineSeparator() +
-                "  .replacement='%s'" + System.lineSeparator() +
-                "}" + System.lineSeparator()
-            ).formatted(target, replacement);
-        }
-    }
-
     private static String ReadFile(String filename) {
         if (filename == null || filename.isEmpty()) {
             return null;
@@ -168,39 +134,3 @@ public class Main {
         return content;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
