@@ -41,8 +41,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        if (args.length < 1) {
-            System.err.println("Please provide file to parse.");
+        if (args == null || args.length < 2) {
+            System.err.println("USAGE: <macro_definintion_file> <macro_application_file>");
             return;
         }
 
@@ -61,10 +61,27 @@ public class Main {
                 macroPatternRegistries.add(current);
             }
         } catch (FileNotFoundException e) {
-            System.err.println("File \"" + args[1] + "\" is not found.");
+            System.err.println("File \"" + args[0] + "\" is not found.");
+            return;
         } catch (IOException e) {
             System.err.println(e.getLocalizedMessage());
+            return;
         }
+
+        byte[] content;
+        try (FileInputStream stream = new FileInputStream(args[1])) {
+            content = stream.readAllBytes();
+        } catch (FileNotFoundException e) {
+            System.err.println("File \"" + args[1] + "\" is not found.");
+            return;
+        } catch (IOException e) {
+            System.err.println(e.getLocalizedMessage());
+            return;
+        }
+
+        final String finalContent = Replace(new String(content));
+
+        System.out.println(finalContent);
     }
 
     /* [#] [pattern] <target> [$=] <replacement> */
@@ -108,6 +125,38 @@ public class Main {
         }
 
         return new MacroPattern(target, replacement);
+    }
+
+    /* Apply @macroPatternRegistries in @content recursively. */
+    private static String ReplaceSingular(String content, MacroPattern pattern) {
+        if (content == null || content.isEmpty() || pattern == null) {
+            return null;
+        }
+
+        return content.replaceAll(pattern.getTarget(), pattern.getReplacement());
+    }
+
+    private static String Replace(String content) {
+        if (content == null || content.isEmpty()) {
+            return null;
+        }
+
+        boolean remains = true;
+        while (remains) {
+            for (MacroPattern pattern : macroPatternRegistries) {
+                boolean found = false;
+                while (content.contains(pattern.getTarget())) {
+                    found = true;
+                    content = ReplaceSingular(content, pattern);
+                }
+
+                if (!found) {
+                    remains = false;
+                }
+            }
+        }
+
+        return content;
     }
 }
 

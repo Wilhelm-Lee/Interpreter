@@ -2,7 +2,7 @@
   <configuration default="false" name="Main" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="Main" />
     <module name="Interpreter" />
-    <option name="PROGRAM_PARAMETERS" value="file" />
+    <option name="PROGRAM_PARAMETERS" value="macros source_file" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

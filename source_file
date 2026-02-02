@@ -1,0 +1,6 @@
+int main(void)
+{
+    const int value = Object.Function(params);
+
+    return value;
+}
