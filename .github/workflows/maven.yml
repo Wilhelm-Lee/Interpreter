@@ -25,6 +25,8 @@ jobs:
       with:
         # Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
         repo-token:
+          ${{ secrets.GITHUB_TOKEN }}
+
         # Comment to post on an individual's first issue
         issue-message: |
           Greetings!  This is your first issue!  Be sure to checkout for updates!  Thanks for your contribution!
