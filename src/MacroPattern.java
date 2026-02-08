@@ -45,34 +45,12 @@ public class MacroPattern {
         return replacement;
     }
 
-    private String generatePositionIndicators(Format format) {
-        if (format == null) {
-            return null;
-        }
-
-        final Position[] positions = format.getPositions();
-
-        final int total = format.getContent().length();
-
-        char[] buffer = new char[total];
-        Arrays.fill(buffer, ' ');
-
-        for (Position position : positions) {
-            buffer[position.getOffset()] = '^';
-            for (int i = position.getOffset() + 1; i < position.getEnd(); i++) {
-                buffer[i] = '~';
-            }
-        }
-
-        return new String(buffer);
-    }
-
     public String generateTargetPositionIndicators() {
-        return generatePositionIndicators(target);
+        return target.generatePositionIndicators();
     }
 
     public String generateReplacementPositionIndicators() {
-        return generatePositionIndicators(replacement);
+        return replacement.generatePositionIndicators();
     }
 
     @Override
