@@ -1,36 +1,182 @@
 import java.io.*;
 import java.util.ArrayList;
-import java.util.StringTokenizer;
+import java.util.Arrays;
+import java.util.Comparator;
 
 public class Main {
 
-    private static ArrayList<MacroPattern> macroPatternRegistries;
+    private static int getFirstNonWhitespaceIndexForSubstringing(String str) {
+        /* Handle null or empty input safely. */
+        if (str == null || str.isEmpty()) {
+            return 0;
+        }
 
-    private static String ReadFile(String filename) {
+        for (int i = 0; i < str.length(); i++) {
+            /* Check if the character is NOT a whitespace. */
+            if (!Character.isWhitespace(str.charAt(i))) {
+                return i;
+            }
+        }
+
+        /* Return 0 if no non-whitespace character is found. */
+        return 0;
+    }
+
+    private static String[] Compact(String[] lines) {
+        if (lines == null || lines.length == 0) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        boolean isPreviousLineNeedsMultiLineReading = false;
+        boolean isCurrentLineNeedsMultiLineReading = false;
+        ArrayList<String> compactedLines = new ArrayList<>(0);
+        boolean isMacroContent = false;
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i] == null || lines[i].isEmpty() || lines[i].length() <= 1) {
+                continue;
+            }
+
+            String line = lines[i];
+            if (i > 0) {
+                isPreviousLineNeedsMultiLineReading = isCurrentLineNeedsMultiLineReading;
+            }
+            isCurrentLineNeedsMultiLineReading = (line.charAt(line.length() - 1) == '\\');
+
+            /* Remove trailing '\\'. */
+            if (isCurrentLineNeedsMultiLineReading) {
+                line = line.substring(0, line.length() - 1);
+                line = line.concat(" ");  // Append a space for readability.
+            }
+
+            if (isMacroContent) {
+                /* Remove leading indentations. */
+                line = line.substring(getFirstNonWhitespaceIndexForSubstringing(line));
+            }
+
+            /* Entering. */
+            if (!isPreviousLineNeedsMultiLineReading && isCurrentLineNeedsMultiLineReading) {
+                isMacroContent = true;
+                sb.append(line);
+            }
+
+            /* Inside. */
+            if (isPreviousLineNeedsMultiLineReading && isCurrentLineNeedsMultiLineReading) {
+                sb.append(line);
+            }
+
+            /* Exiting. */
+            if (isPreviousLineNeedsMultiLineReading && !isCurrentLineNeedsMultiLineReading) {
+                isMacroContent = false;
+                sb.append(line);
+                compactedLines.add(sb.toString());
+                sb = new StringBuilder();
+            }
+
+            /* Outside. */
+        }
+
+        return compactedLines.toArray(new String[0]);
+    }
+
+    private static String[] ReadLines(String filename) {
         if (filename == null || filename.isEmpty()) {
             return null;
         }
 
-        return ReadFile(new File(filename));
-    }
+        ArrayList<String> readlines = new ArrayList<>(0);
+        try (FileInputStream stream = new FileInputStream(filename);
+             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream))) {
 
-    private static String ReadFile(File file) {
-        if (file == null) {
-            return null;
-        }
-
-        byte[] content;
-        try (FileInputStream stream = new FileInputStream(file)) {
-            content = stream.readAllBytes();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                readlines.add(line);
+            }
         } catch (FileNotFoundException e) {
-            System.err.println("File \"" + file.getAbsolutePath() + "\" is not found.");
+            System.err.println("File \"" + filename + "\" is not found.");
             return null;
         } catch (IOException e) {
             System.err.println(e.getLocalizedMessage());
             return null;
         }
 
-        return new String(content);
+        return readlines.toArray(new String[0]);
+    }
+
+    private static MacroPattern[] ParseMacroPatterns(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return null;
+        }
+
+        String[] lines = ReadLines(filename);
+        if (lines == null) {
+            return null;
+        }
+
+        String[] compacted = Compact(lines);
+        if (compacted == null) {
+            return null;
+        }
+
+        ArrayList<MacroPattern> patterns = new ArrayList<>(0);
+        for (String s : compacted) {
+            final MacroPattern current = new MacroPattern(s);
+            if (!current.isThisValidMacroPattern()) {
+                continue;
+            }
+
+            patterns.add(current);
+        }
+
+        return patterns.toArray(new MacroPattern[0]);
+    }
+
+    private static String GeneratePositionIndicators(final Position[] positions) {
+        if (positions == null || positions.length == 0) {
+            return null;
+        }
+
+        final int total = Arrays.stream(positions).max(Comparator.comparingInt(Position::getEnd)).get().getEnd() + 1;
+
+        char[] buffer = new char[total];
+        Arrays.fill(buffer, ' ');
+
+        for (Position position : positions) {
+            buffer[position.getOffset()] = '^';
+            for (int i = position.getOffset() + 1; i < position.getEnd(); i++) {
+                buffer[i] = '~';
+            }
+        }
+
+        return new String(buffer);
+    }
+
+    private static void PrintPositionsOfPlaceholdersOfMacroPatterns(final MacroPattern[] patterns) {
+        if (patterns == null || patterns.length == 0) {
+            return;
+        }
+
+        for (MacroPattern pattern : patterns) {
+            if (!pattern.isThisValidMacroPattern()) {
+                continue;
+            }
+
+            Placeholder[] placeholders = pattern.getTarget().getPlaceholders();
+            if (placeholders == null) {
+                continue;
+            }
+
+            for (Placeholder holder : placeholders) {
+                if (!holder.isValidPlaceholder()) {
+                    continue;
+                }
+
+                System.out.printf("%s: \"%s\"%s", holder.getPosition(),
+                        pattern.getTarget().getContent().substring(holder.getPosition().getOffset(),
+                                holder.getPosition().getOffset() + holder.getPosition().getLength()),
+                        System.lineSeparator());
+            }
+        }
     }
 
     public static void main(String[] args) {
@@ -39,98 +185,61 @@ public class Main {
             return;
         }
 
-        macroPatternRegistries = new ArrayList<>(0);
+        MacroPattern[] patterns = ParseMacroPatterns(args[0]);
 
-        try (FileInputStream stream = new FileInputStream(args[0]);
-             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(stream))) {
-
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                final MacroPattern current = Parse(line);
-                if (current == null) {
-                    continue;
-                }
-
-                macroPatternRegistries.add(current);
-            }
-        } catch (FileNotFoundException e) {
-            System.err.println("File \"" + args[0] + "\" is not found.");
-            return;
-        } catch (IOException e) {
-            System.err.println(e.getLocalizedMessage());
-            return;
-        }
-
-        final String finalContent = Replace(ReadFile(args[1]));
-
-        System.out.println(Replace(finalContent));
-    }
-
-    /* [#] [pattern] <target> [$=] <replacement> */
-    private static MacroPattern Parse(String content) {
-        if (content == null || content.isEmpty()) {
-            return null;
-        }
-
-        content = content.trim();
-
-        /* Not a preprocessor line. */
-        if (content.length() <= 1 || content.charAt(0) != '#') {
-            return null;
-        }
-
-        content = content.substring(1);
-
-        StringTokenizer tokenizer = new StringTokenizer(content, " ");
-
-        /* Not a pattern preprocessor. */
-        if (tokenizer.nextToken().compareTo("pattern") != 0) {
-            return null;
-        }
-
-        content = content.replaceFirst("pattern", "");
-
-        /* <target> [$=] <replacement> */
-        final int separatorIndex = content.indexOf("$=");
-
-        /* No separator found -- Illegal pattern macro. */
-        if (separatorIndex == -1) {
-            return null;
-        }
-
-        final String target = content.substring(0, separatorIndex).trim();
-        final String replacement = content.substring(separatorIndex + "$=".length()).trim();
-
-        /* No available target parsed -- Illegal pattern macro. */
-        if (target.isEmpty()) {
-            return null;
-        }
-
-        return new MacroPattern(target, replacement);
-    }
-
-    /* Apply @macroPatternRegistries in @content recursively. */
-    private static String ReplaceSingular(String content, MacroPattern pattern) {
-        if (content == null || content.isEmpty() || pattern == null) {
-            return null;
-        }
-
-        return content.replaceAll(pattern.getTarget(), pattern.getReplacement());
-    }
-
-    private static String Replace(String content) {
-        if (content == null || content.isEmpty()) {
-            return null;
-        }
-
-        for (MacroPattern pattern : macroPatternRegistries) {
-            if (!content.contains(pattern.getTarget())) {
+        ArrayList<Position> positions = new ArrayList<>(0);
+        for (MacroPattern pattern : patterns) {
+            if (!pattern.isThisValidMacroPattern()) {
                 continue;
             }
 
-            content = ReplaceSingular(content, pattern);
+            System.out.println(pattern.getTarget());
+
+            for (Placeholder placeholder : pattern.getTarget().getPlaceholders()) {
+                if (!placeholder.isValidPlaceholder()) {
+                    continue;
+                }
+
+                positions.add(placeholder.getPosition());
+            }
         }
 
-        return content;
+        System.out.println(GeneratePositionIndicators(positions.toArray(new Position[0])));
+
+        PrintPositionsOfPlaceholdersOfMacroPatterns(patterns);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

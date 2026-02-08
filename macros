@@ -1,1 +1,78 @@
-#pattern Object.Function $= Object_Function
+#pattern abc $= xyz
+#pattern ${Object}.${Function} $= ${Object}_${Function}
+
+/* for i < length do ... done */
+for llong i ${condition} do ... done
+
+/* for llong i in ${collection} do ... done */
+
+typedef struct {
+    llong start;
+    llong end;
+    boolean inclusive_start;
+    boolean inclusive_end;
+    llong step;
+} Range;
+
+@Range(@llong, @boolean) {
+    public static class Range {
+        public static @llong start;
+        public static @llong end;
+        public static @boolean inclusive_start;
+        public static @boolean inclusive_end;
+        public static @llong step;
+    }
+}
+
+/* Compile time calculation.  Current backend:  Java (JDK 17). */
+@InRange(Range range, @iterator) {
+    /* Incremental. */
+    if (range.start < range.end) {
+        if (range.inclusive_start) {
+            if (range.inclusive_end) {
+                return "(@iterator >= range.start && @iterator <= range.end)";
+            }
+
+            return "(@iterator >= range.start && @iterator < range.end)";
+        }
+
+        if (range.inclusive_end) {
+            return "(@iterator > range.start && @iterator <= range.end)";
+        }
+
+        return "(@iterator > range.start && @iterator < range.end)";
+    }
+
+    /* Decremental. */
+    if (range.inclusive_start) {
+        if (range.inclusive_end) {
+            return "(@iterator >= range.end && @iterator <= range.start)";
+        }
+
+        return "(@iterator >= range.end && @iterator < range.start)";
+    }
+
+    if (range.inclusive_end) {
+        return "(@iterator > range.end && @iterator <= range.start)";
+    }
+
+    return "(@iterator > range.end && @iterator < range.start)";
+}
+
+#define step(range_obj, symbol)\
+    (symbol) += (range_obj).step
+
+/* for llong i in range [0, length) do ... done */
+#pattern\
+    for ${type} ${iterator} in range ${range_expr} do ${blocks} done\
+    $=\
+    do {\
+        Range range = @Range("${range_expr}");\
+        if (!range) {\
+            break;\
+        }\
+\
+        for (register ${type} ${iterator} = range.start; @InRange(range, ${iterator}); step(range, ${iterator})) {\
+            ${blocks}\
+        }\
+    } while (0);

@@ -1,28 +1,50 @@
-/* #pattern target $= replacement */
 public class MacroPattern {
-    String target;
-    String replacement;
+    private Format target = null;
+    private Format replacement = null;
 
-    public MacroPattern(String target) {
-        this.target = target;
-        this.replacement = "";
+    public MacroPattern(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return;
+        }
+
+        raw = raw.trim();
+
+        /* #pattern target $= replacement */
+        /* [#] [pattern] [target] [$=] [replacement] */
+        if (raw.charAt(0) != '#') {
+            return;
+        }
+
+        raw = raw.substring(1);
+
+        raw = raw.replaceFirst("pattern", "")
+                 .trim();
+
+        /* target $= replacement */
+        /* [target] [$=] [replacement] */
+        final int separatorIndex = raw.indexOf("$=");
+        if (separatorIndex < 0) {
+            return;
+        }
+
+        this.target = new Format(raw.substring(0, separatorIndex - 1));
+        this.replacement = new Format(raw.substring(separatorIndex + "$=".length() + 1));
     }
 
-    public MacroPattern(String target, String replacement) {
-        this.target = target;
-        this.replacement = replacement;
+    public boolean isThisValidMacroPattern() {
+        return (target != null && replacement != null);
     }
 
-    public String getTarget() {
+    public Format getTarget() {
         return target;
     }
 
-    public String getReplacement() {
+    public Format getReplacement() {
         return replacement;
     }
 
     @Override
     public String toString() {
-        return ("'%s' $= '%s'").formatted(target, replacement);
+        return "#pattern " + this.target + " $= " + this.replacement;
     }
 }
