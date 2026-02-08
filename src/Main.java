@@ -1,7 +1,5 @@
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 
 public class Main {
 
@@ -131,26 +129,6 @@ public class Main {
         return patterns.toArray(new MacroPattern[0]);
     }
 
-    private static String GeneratePositionIndicators(final Position[] positions) {
-        if (positions == null || positions.length == 0) {
-            return null;
-        }
-
-        final int total = Arrays.stream(positions).max(Comparator.comparingInt(Position::getEnd)).get().getEnd() + 1;
-
-        char[] buffer = new char[total];
-        Arrays.fill(buffer, ' ');
-
-        for (Position position : positions) {
-            buffer[position.getOffset()] = '^';
-            for (int i = position.getOffset() + 1; i < position.getEnd(); i++) {
-                buffer[i] = '~';
-            }
-        }
-
-        return new String(buffer);
-    }
-
     private static void PrintPositionsOfPlaceholdersOfMacroPatterns(final MacroPattern[] patterns) {
         if (patterns == null || patterns.length == 0) {
             return;
@@ -187,24 +165,13 @@ public class Main {
 
         MacroPattern[] patterns = ParseMacroPatterns(args[0]);
 
-        ArrayList<Position> positions = new ArrayList<>(0);
         for (MacroPattern pattern : patterns) {
-            if (!pattern.isThisValidMacroPattern()) {
-                continue;
-            }
-
             System.out.println(pattern.getTarget());
+            System.out.println(pattern.generateTargetPositionIndicators());
 
-            for (Placeholder placeholder : pattern.getTarget().getPlaceholders()) {
-                if (!placeholder.isValidPlaceholder()) {
-                    continue;
-                }
-
-                positions.add(placeholder.getPosition());
-            }
+            System.out.println(pattern.getReplacement());
+            System.out.println(pattern.generateReplacementPositionIndicators());
         }
-
-        System.out.println(GeneratePositionIndicators(positions.toArray(new Position[0])));
 
         PrintPositionsOfPlaceholdersOfMacroPatterns(patterns);
     }

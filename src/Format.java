@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,6 +49,37 @@ public class Format {
 
     public Placeholder[] getPlaceholders() {
         return placeholders;
+    }
+
+    public Position[] getPositions() {
+        Position[] positions = new Position[this.placeholders.length];
+        for (int i = 0, placeholdersLength = placeholders.length; i < placeholdersLength; i++) {
+            if (!placeholders[i].isValidPlaceholder()) {
+                continue;
+            }
+
+            positions[i] = placeholders[i].getPosition();
+        }
+
+        return positions;
+    }
+
+    public String generatePositionIndicators() {
+        final Position[] positions = getPositions();
+
+        final int total = content.length();
+
+        char[] buffer = new char[total];
+        Arrays.fill(buffer, ' ');
+
+        for (Position position : positions) {
+            buffer[position.getOffset()] = '^';
+            for (int i = position.getOffset() + 1; i < position.getEnd(); i++) {
+                buffer[i] = '~';
+            }
+        }
+
+        return new String(buffer);
     }
 
     @Override

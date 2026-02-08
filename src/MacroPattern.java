@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 public class MacroPattern {
     private Format target = null;
     private Format replacement = null;
@@ -41,6 +43,36 @@ public class MacroPattern {
 
     public Format getReplacement() {
         return replacement;
+    }
+
+    private String generatePositionIndicators(Format format) {
+        if (format == null) {
+            return null;
+        }
+
+        final Position[] positions = format.getPositions();
+
+        final int total = format.getContent().length();
+
+        char[] buffer = new char[total];
+        Arrays.fill(buffer, ' ');
+
+        for (Position position : positions) {
+            buffer[position.getOffset()] = '^';
+            for (int i = position.getOffset() + 1; i < position.getEnd(); i++) {
+                buffer[i] = '~';
+            }
+        }
+
+        return new String(buffer);
+    }
+
+    public String generateTargetPositionIndicators() {
+        return generatePositionIndicators(target);
+    }
+
+    public String generateReplacementPositionIndicators() {
+        return generatePositionIndicators(replacement);
     }
 
     @Override
