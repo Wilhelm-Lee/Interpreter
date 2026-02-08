@@ -1,5 +1,3 @@
-import java.util.Arrays;
-
 public class MacroPattern {
     private Format target = null;
     private Format replacement = null;
